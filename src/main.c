@@ -15,8 +15,30 @@ struct mcw_server {
 	struct wl_list outputs; // mcw_output::link
 };
 
+struct mcw_output {
+        struct wlr_output *wlr_output;
+        struct mcw_server *server;
+        struct timespec last_frame;
+
+        struct wl_list link;
+};
+
 static void new_output_notify(struct wl_listener *listener, void *data) {
-	
+        struct mcw_server *server = wl_container_of(
+                        listener, server, new_output);
+        struct wlr_output *wlr_output = data;
+
+        if (!wl_list_empty(&wlr_output->modes)) {
+                struct wlr_output_mode *mode =
+                        wl_container_of(wlr_output->modes.prev, mode, link);
+                wlr_output_set_mode(wlr_output, mode);
+        }
+
+        struct mcw_output *output = calloc(1, sizeof(struct mcw_output));
+        clock_gettime(CLOCK_MONOTONIC, &output->last_frame);
+        output->server = server;
+        output->wlr_output = wlr_output;
+        wl_list_insert(&server->outputs, &output->link);
 }
 
 
