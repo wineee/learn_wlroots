@@ -9,6 +9,7 @@
 struct mcw_server {
 	struct wl_display *wl_display;
         struct wl_event_loop *wl_event_loop;
+	struct wlr_backend *backend;
 };
 
 int main(int argc, char **argv) {
@@ -18,5 +19,7 @@ int main(int argc, char **argv) {
         assert(server.wl_display);
         server.wl_event_loop = wl_display_get_event_loop(server.wl_display);
         assert(server.wl_event_loop);
+	server.backend = wlr_backend_autocreate(server.wl_display);
+	assert(server.backend);
         return 0;
  }
