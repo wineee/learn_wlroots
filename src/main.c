@@ -21,5 +21,12 @@ int main(int argc, char **argv) {
         assert(server.wl_event_loop);
 	server.backend = wlr_backend_autocreate(server.wl_display);
 	assert(server.backend);
+        if (!wlr_backend_start(server.backend)) {
+                fprintf(stderr, "Failed to start backend\n");
+                wl_display_destroy(server.wl_display);
+                return 1;
+        }
+        wl_display_run(server.wl_display);
+        wl_display_destroy(server.wl_display);
         return 0;
  }
