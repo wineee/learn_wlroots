@@ -19,9 +19,17 @@ struct mcw_output {
         struct wlr_output *wlr_output;
         struct mcw_server *server;
         struct timespec last_frame;
-
+	struct wl_listener destroy;
         struct wl_list link;
 };
+
+static void output_destroy_notify(struct wl_listener *listener, void *data) {
+         struct mcw_output *output = wl_container_of(listener, output, destroy);
+         wl_list_remove(&output->link);
+         wl_list_remove(&output->destroy.link);
+         // wl_list_remove(&output->frame.link);
+         free(output);
+}
 
 static void new_output_notify(struct wl_listener *listener, void *data) {
         struct mcw_server *server = wl_container_of(
@@ -39,6 +47,9 @@ static void new_output_notify(struct wl_listener *listener, void *data) {
         output->server = server;
         output->wlr_output = wlr_output;
         wl_list_insert(&server->outputs, &output->link);
+
+	output->destroy.notify = output_destroy_notify;
+	wl_signal_add(&wlr_output->events.destroy, &output->destroy);
 }
 
 
