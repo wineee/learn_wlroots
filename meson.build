@@ -13,7 +13,7 @@ project(
 
 add_project_arguments('-DWLR_USE_UNSTABLE', language: 'c')
 add_project_arguments('-Wno-unused-parameter', language: 'c')
-add_project_arguments('-D_POSIX_C_SOURCE=199309L', language: 'c')
+add_project_arguments('-D_POSIX_C_SOURCE=200112L', language: 'c')
 
 cc = meson.get_compiler('c')
 # Clang complains about some zeroed initializer lists (= {0}), even though they
