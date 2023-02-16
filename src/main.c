@@ -20,6 +20,7 @@ struct mcw_output {
         struct mcw_server *server;
         struct timespec last_frame;
 	struct wl_listener destroy;
+	struct wl_listener frame;
         struct wl_list link;
 };
 
@@ -27,8 +28,25 @@ static void output_destroy_notify(struct wl_listener *listener, void *data) {
          struct mcw_output *output = wl_container_of(listener, output, destroy);
          wl_list_remove(&output->link);
          wl_list_remove(&output->destroy.link);
-         // wl_list_remove(&output->frame.link);
+         wl_list_remove(&output->frame.link);
          free(output);
+}
+
+static void output_frame_notify(struct wl_listener *listener, void *data) {
+        struct mcw_output *output = wl_container_of(listener, output, frame);
+        //struct wlr_output *wlr_output = data;
+        //struct wlr_renderer *renderer = wlr_backend_get_renderer(
+        //               wlr_output->backend);
+
+        //wlr_output_make_current(wlr_output, NULL);
+	// makes the output’s OpenGL context “current”
+        //wlr_renderer_begin(renderer, wlr_output);
+
+        //float color[4] = {1.0, 0, 0, 1.0};
+        //wlr_renderer_clear(renderer, color);
+
+        //wlr_output_swap_buffers(wlr_output, NULL, NULL);
+        //wlr_renderer_end(renderer);
 }
 
 static void new_output_notify(struct wl_listener *listener, void *data) {
@@ -50,6 +68,9 @@ static void new_output_notify(struct wl_listener *listener, void *data) {
 
 	output->destroy.notify = output_destroy_notify;
 	wl_signal_add(&wlr_output->events.destroy, &output->destroy);
+
+	output->frame.notify = output_frame_notify;
+	wl_signal_add(&wlr_output->events.frame, &output->frame);
 }
 
 
