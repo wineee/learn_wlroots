@@ -12,6 +12,7 @@
 #include <wlr/types/wlr_primary_selection_v1.h>
 #include <wlr/types/wlr_screencopy_v1.h>
 #include <wlr/types/wlr_compositor.h>
+#include <wlr/types/wlr_xdg_shell.h>
 
 struct mcw_server {
 	struct wl_display *wl_display;
@@ -125,6 +126,7 @@ int main(int argc, char **argv) {
         wlr_idle_create(server.wl_display);
 	
         server.compositor = wlr_compositor_create(server.wl_display, server.renderer);
+        wlr_xdg_shell_create(server.wl_display, 1u);
 
 	wl_display_run(server.wl_display);
         wl_display_destroy(server.wl_display);

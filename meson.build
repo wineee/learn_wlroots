@@ -3,7 +3,7 @@ project(
 	'c',
 	version: '0.0.1',
 	license: 'MIT',
-	meson_version: '>=0.43.0',
+	meson_version: '>=0.47.0',
 	default_options: [
 		'c_std=c11',
 		'warning_level=2',
@@ -30,9 +30,20 @@ pixman         = dependency('pixman-1')
 wlroots        = dependency('wlroots')
 wayland_server = dependency('wayland-server')
 
+dep_scanner = dependency('wayland-scanner', native: true)
+prog_scanner = find_program('wayland-scanner', dep_scanner.get_pkgconfig_variable('wayland_scanner'))
+
+dep_wp = dependency('wayland-protocols', version: '>= 1.30')
+dir_wp_base = dep_wp.get_pkgconfig_variable('pkgdatadir')
+xml_path = '@0@/stable/xdg-shell/xdg-shell.xml'.format(dir_wp_base)
+
+run_command(prog_scanner, 'server-header', xml_path, 'xdg-shell-protocol.h', check: true)
+
+
 executable(
 	'mcwayface',
 	[
+                'xdg-shell-protocol.h',
 		'src/main.c'
 	],
 	dependencies: [
