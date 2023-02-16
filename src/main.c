@@ -44,7 +44,7 @@ static void output_frame_notify(struct wl_listener *listener, void *data) {
 	// makes the output’s OpenGL context “current”
         wlr_renderer_begin(renderer, wlr_output->width, wlr_output->height);
 
-        float color[4] = {1.0, 0, 0, 1.0};
+        float color[4] = {0.3, 0.3, 0.4, 1};
 	wlr_renderer_clear(renderer, color);
 
         wlr_renderer_end(renderer);
