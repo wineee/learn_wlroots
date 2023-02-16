@@ -11,11 +11,13 @@
 #include <wlr/types/wlr_gamma_control_v1.h>
 #include <wlr/types/wlr_primary_selection_v1.h>
 #include <wlr/types/wlr_screencopy_v1.h>
+#include <wlr/types/wlr_compositor.h>
 
 struct mcw_server {
 	struct wl_display *wl_display;
         struct wl_event_loop *wl_event_loop;
 	struct wlr_backend *backend;
+	struct wlr_compositor *compositor;
 	struct wlr_renderer *renderer;
 	struct wlr_allocator *allocator;
 	struct wl_listener new_output;
@@ -81,6 +83,8 @@ static void new_output_notify(struct wl_listener *listener, void *data) {
 
 	output->frame.notify = output_frame_notify;
 	wl_signal_add(&wlr_output->events.frame, &output->frame);
+
+	wlr_output_create_global(wlr_output);
 }
 
 
@@ -119,6 +123,8 @@ int main(int argc, char **argv) {
         wlr_screencopy_manager_v1_create(server.wl_display);
         wlr_primary_selection_v1_device_manager_create(server.wl_display);
         wlr_idle_create(server.wl_display);
+	
+        server.compositor = wlr_compositor_create(server.wl_display, server.renderer);
 
 	wl_display_run(server.wl_display);
         wl_display_destroy(server.wl_display);
