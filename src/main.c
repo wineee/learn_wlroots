@@ -6,11 +6,14 @@
 #include <wlr/backend.h>
 #include <wlr/render/wlr_renderer.h>
 #include <wlr/types/wlr_output.h>
+#include <wlr/render/allocator.h>
 
 struct mcw_server {
 	struct wl_display *wl_display;
         struct wl_event_loop *wl_event_loop;
 	struct wlr_backend *backend;
+	struct wlr_renderer *renderer;
+	struct wlr_allocator *allocator;
 	struct wl_listener new_output;
 	struct wl_list outputs; // mcw_output::link
 };
@@ -34,25 +37,28 @@ static void output_destroy_notify(struct wl_listener *listener, void *data) {
 
 static void output_frame_notify(struct wl_listener *listener, void *data) {
         struct mcw_output *output = wl_container_of(listener, output, frame);
-        //struct wlr_output *wlr_output = data;
-        //struct wlr_renderer *renderer = wlr_backend_get_renderer(
-        //               wlr_output->backend);
+        struct wlr_output *wlr_output = data;
+	struct wlr_renderer *renderer = output->server->renderer;
 
-        //wlr_output_make_current(wlr_output, NULL);
+        wlr_output_attach_render(wlr_output, NULL);
 	// makes the output’s OpenGL context “current”
-        //wlr_renderer_begin(renderer, wlr_output);
+        wlr_renderer_begin(renderer, wlr_output->width, wlr_output->height);
 
-        //float color[4] = {1.0, 0, 0, 1.0};
-        //wlr_renderer_clear(renderer, color);
+        float color[4] = {1.0, 0, 0, 1.0};
+	wlr_renderer_clear(renderer, color);
 
-        //wlr_output_swap_buffers(wlr_output, NULL, NULL);
-        //wlr_renderer_end(renderer);
+        wlr_renderer_end(renderer);
+        wlr_output_commit(wlr_output);
 }
 
 static void new_output_notify(struct wl_listener *listener, void *data) {
         struct mcw_server *server = wl_container_of(
                         listener, server, new_output);
         struct wlr_output *wlr_output = data;
+
+	/* Configures the output created by the backend to use our allocator
+     * and our renderer. Must be done once, before commiting the output */
+	wlr_output_init_render(wlr_output, server->allocator, server->renderer);
 
         if (!wl_list_empty(&wlr_output->modes)) {
                 struct wlr_output_mode *mode =
@@ -83,6 +89,10 @@ int main(int argc, char **argv) {
         assert(server.wl_event_loop);
 	server.backend = wlr_backend_autocreate(server.wl_display);
 	assert(server.backend);
+	server.renderer = wlr_renderer_autocreate(server.backend);
+	assert(server.renderer);
+	server.allocator = wlr_allocator_autocreate(server.backend, server.renderer);
+	assert(server.allocator);
 
 	wl_list_init(&server.outputs);
 	server.new_output.notify = new_output_notify;
