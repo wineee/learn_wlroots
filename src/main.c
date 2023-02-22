@@ -42,7 +42,6 @@ struct mcw_server {
 struct mcw_output {
         struct wlr_output *wlr_output;
         struct mcw_server *server;
-        struct timespec last_frame;
 	struct wl_listener destroy;
 	struct wl_listener frame;
         struct wl_list link;
@@ -92,7 +91,6 @@ static void new_output_notify(struct wl_listener *listener, void *data) {
         }
 
         struct mcw_output *output = calloc(1, sizeof(struct mcw_output));
-        //clock_gettime(CLOCK_MONOTONIC, &output->last_frame);
         output->server = server;
         output->wlr_output = wlr_output;
         wl_list_insert(&server->outputs, &output->link);
