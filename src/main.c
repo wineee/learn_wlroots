@@ -186,6 +186,7 @@ int main(int argc, char **argv) {
 	server.new_output.notify = new_output_notify;
 	wl_signal_add(&server.backend->events.new_output, &server.new_output);
 
+	server.seat = wlr_seat_create(server.wl_display, "seat0");
 
 	const char *socket = wl_display_add_socket_auto(server.wl_display);
 	assert(socket);
