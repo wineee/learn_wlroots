@@ -18,6 +18,7 @@
 #include <wlr/types/wlr_subcompositor.h>
 #include <wlr/types/wlr_xdg_shell.h>
 #include <wlr/types/wlr_data_device.h>
+#include <wlr/types/wlr_seat.h>
 
 struct mcw_server {
 	struct wl_display *wl_display;
@@ -30,6 +31,8 @@ struct mcw_server {
 
 	struct wlr_xdg_shell *xdg_shell;
 	struct wl_listener new_xdg_surface;
+
+	struct wlr_seat *seat;
 
 	struct wlr_output_layout *output_layout;
 	struct wl_listener new_output;
@@ -189,6 +192,7 @@ int main(int argc, char **argv) {
 
         if (!wlr_backend_start(server.backend)) {
                 fprintf(stderr, "Failed to start backend\n");
+		wlr_backend_destroy(server.backend);
                 wl_display_destroy(server.wl_display);
                 return 1;
         }
@@ -212,6 +216,8 @@ int main(int argc, char **argv) {
 			&server.new_xdg_surface);
 
 	wl_display_run(server.wl_display);
+	/* Once wl_display_run returns, we shut down the server. */
+	wl_display_destroy_clients(server.wl_display);
         wl_display_destroy(server.wl_display);
         return 0;
  }
