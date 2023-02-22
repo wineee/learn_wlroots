@@ -110,9 +110,16 @@ struct mcw_view {
 	struct mcw_server *server;
 	struct wlr_xdg_toplevel *xdg_toplevel;
 	struct wlr_scene_tree *scene_tree;
-	//struct wl_listener destroy;
+	struct wl_listener destroy;
 	//int x, y;
 };
+
+static void xdg_toplevel_destroy(struct wl_listener *listener, void *data) {
+	/* Called when the surface is destroyed and should never be shown again. */
+	struct mcw_view *view = wl_container_of(listener, view, destroy);
+	wl_list_remove(&view->destroy.link);
+	free(view);
+}
 
 static void server_new_xdg_surface(struct wl_listener *listener, void *data) {
 	/* This event is raised when wlr_xdg_shell receives a new xdg surface from a
@@ -147,8 +154,8 @@ static void server_new_xdg_surface(struct wl_listener *listener, void *data) {
 	xdg_surface->data = view->scene_tree;
 
 	/* Listen to the various events it can emit */
-	//view->destroy.notify = xdg_toplevel_destroy;
-	//wl_signal_add(&xdg_surface->events.destroy, &view->destroy);
+	view->destroy.notify = xdg_toplevel_destroy;
+	wl_signal_add(&xdg_surface->events.destroy, &view->destroy);
 }
 
 int main(int argc, char **argv) {
