@@ -20,6 +20,7 @@
 #include <wlr/types/wlr_data_device.h>
 #include <wlr/types/wlr_seat.h>
 #include <wlr/types/wlr_cursor.h>
+#include <wlr/types/wlr_xcursor_manager.h>
 
 enum tinywl_cursor_mode {
 	TINYWL_CURSOR_PASSTHROUGH,
@@ -41,6 +42,8 @@ struct mcw_server {
 
 	struct wlr_seat *seat;
 	struct wl_listener request_cursor;
+
+	struct wl_listener new_input;
 	
 	struct wlr_cursor *cursor;
 	struct wlr_xcursor_manager *cursor_mgr;
@@ -191,6 +194,28 @@ static void seat_request_cursor(struct wl_listener *listener, void *data) {
 	}
 }
 
+static void server_new_pointer(struct mcw_server *server,
+		struct wlr_input_device *device) {
+	wlr_cursor_attach_input_device(server->cursor, device);
+}
+
+static void server_new_input(struct wl_listener *listener, void *data) {
+	/* This event is raised by the backend when a new input device becomes
+	 * available. */
+	struct mcw_server *server =
+		wl_container_of(listener, server, new_input);
+	struct wlr_input_device *device = data;
+	switch (device->type) {
+	case WLR_INPUT_DEVICE_POINTER:
+		server_new_pointer(server, device);
+		break;
+	default:
+		break;
+	}
+}
+
+
+
 int main(int argc, char **argv) {
 	struct mcw_server server;
 
@@ -216,11 +241,16 @@ int main(int argc, char **argv) {
 	server.new_output.notify = new_output_notify;
 	wl_signal_add(&server.backend->events.new_output, &server.new_output);
 
+	server.new_input.notify = server_new_input;
+	wl_signal_add(&server.backend->events.new_input, &server.new_input);
+
+	server.cursor_mgr = wlr_xcursor_manager_create(NULL, 24);
+	wlr_xcursor_manager_load(server.cursor_mgr, 1);
+
 	server.seat = wlr_seat_create(server.wl_display, "seat0");
 	server.request_cursor.notify = seat_request_cursor;
 	wl_signal_add(&server.seat->events.request_set_cursor,
 			&server.request_cursor);
-
 
 	const char *socket = wl_display_add_socket_auto(server.wl_display);
 	assert(socket);
