@@ -19,6 +19,13 @@
 #include <wlr/types/wlr_xdg_shell.h>
 #include <wlr/types/wlr_data_device.h>
 #include <wlr/types/wlr_seat.h>
+#include <wlr/types/wlr_cursor.h>
+
+enum tinywl_cursor_mode {
+	TINYWL_CURSOR_PASSTHROUGH,
+	TINYWL_CURSOR_MOVE,
+	TINYWL_CURSOR_RESIZE,
+};
 
 struct mcw_server {
 	struct wl_display *wl_display;
@@ -33,6 +40,12 @@ struct mcw_server {
 	struct wl_listener new_xdg_surface;
 
 	struct wlr_seat *seat;
+	struct wl_listener request_cursor;
+	
+	struct wlr_cursor *cursor;
+	struct wlr_xcursor_manager *cursor_mgr;
+	enum tinywl_cursor_mode cursor_mode;
+
 
 	struct wlr_output_layout *output_layout;
 	struct wl_listener new_output;
@@ -159,6 +172,25 @@ static void server_new_xdg_surface(struct wl_listener *listener, void *data) {
 	wl_signal_add(&xdg_surface->events.destroy, &view->destroy);
 }
 
+static void seat_request_cursor(struct wl_listener *listener, void *data) {
+ 	struct mcw_server *server = wl_container_of(
+ 			listener, server, request_cursor);
+ 	/* This event is raised by the seat when a client provides a cursor image */
+ 	struct wlr_seat_pointer_request_set_cursor_event *event = data;
+ 	struct wlr_seat_client *focused_client =
+ 		server->seat->pointer_state.focused_client;
+ 	/* This can be sent by any client, so we check to make sure this one is
+ 	 * actually has pointer focus first. */
+ 	if (focused_client == event->seat_client) {
+ 		/* Once we've vetted the client, we can tell the cursor to use the
+ 		 * provided surface as the cursor image. It will set the hardware cursor
+		 * on the output that it's currently on and continue to do so as the
+ 		 * cursor moves between outputs. */
+ 		wlr_cursor_set_surface(server->cursor, event->surface,
+ 				event->hotspot_x, event->hotspot_y);
+	}
+}
+
 int main(int argc, char **argv) {
 	struct mcw_server server;
 
@@ -185,6 +217,10 @@ int main(int argc, char **argv) {
 	wl_signal_add(&server.backend->events.new_output, &server.new_output);
 
 	server.seat = wlr_seat_create(server.wl_display, "seat0");
+	server.request_cursor.notify = seat_request_cursor;
+	wl_signal_add(&server.seat->events.request_set_cursor,
+			&server.request_cursor);
+
 
 	const char *socket = wl_display_add_socket_auto(server.wl_display);
 	assert(socket);
