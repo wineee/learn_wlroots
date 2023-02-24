@@ -46,6 +46,12 @@ struct mcw_server {
 	struct wl_listener new_input;
 	
 	struct wlr_cursor *cursor;
+	struct wl_listener cursor_motion;
+	struct wl_listener cursor_motion_absolute;
+	struct wl_listener cursor_button;
+	struct wl_listener cursor_axis;
+	struct wl_listener cursor_frame;
+
 	struct wlr_xcursor_manager *cursor_mgr;
 	enum tinywl_cursor_mode cursor_mode;
 
@@ -128,7 +134,7 @@ struct mcw_view {
 	struct wlr_xdg_toplevel *xdg_toplevel;
 	struct wlr_scene_tree *scene_tree;
 	struct wl_listener destroy;
-	//int x, y;
+	int x, y;
 };
 
 static void xdg_toplevel_destroy(struct wl_listener *listener, void *data) {
@@ -199,6 +205,54 @@ static void server_new_pointer(struct mcw_server *server,
 	wlr_cursor_attach_input_device(server->cursor, device);
 }
 
+
+static void process_cursor_motion(struct mcw_server *server, uint32_t time) {
+	/* If the mode is non-passthrough, delegate to those functions. */
+	if (server->cursor_mode == TINYWL_CURSOR_MOVE) {
+		//process_cursor_move(server, time);
+		return;
+	} else if (server->cursor_mode == TINYWL_CURSOR_RESIZE) {
+		//process_cursor_resize(server, time);
+		return;
+	}
+
+	/* Otherwise, find the view under the pointer and send the event along. */
+	//double sx, sy;
+	//struct wlr_seat *seat = server->seat;
+	//struct wlr_surface *surface = NULL;
+    // struct mcw_view *view = NULL; 
+	// 	//= desktop_view_at(server,
+	// 	//	server->cursor->x, server->cursor->y, &surface, &sx, &sy);
+	// if (!view) {
+	// 	/* If there's no view under the cursor, set the cursor image to a
+	// 	 * default. This is what makes the cursor image appear when you move it
+	// 	 * around the screen, not over any views. */
+	// 	wlr_xcursor_manager_set_cursor_image(
+	// 			server->cursor_mgr, "left_ptr", server->cursor);
+	// }
+	wlr_xcursor_manager_set_cursor_image(
+		server->cursor_mgr, "left_ptr", server->cursor);
+	// if (surface) {
+	// 	wlr_seat_pointer_notify_enter(seat, surface, sx, sy);
+	// 	wlr_seat_pointer_notify_motion(seat, time, sx, sy);
+	// } else {
+	// 	/* Clear pointer focus so future button events and such are not sent to
+	// 	 * the last client to have the cursor over it. */
+	// 	wlr_seat_pointer_clear_focus(seat);
+	// }
+}
+
+
+static void server_cursor_motion_absolute(
+		struct wl_listener *listener, void *data) {
+	struct mcw_server *server =
+		wl_container_of(listener, server, cursor_motion_absolute);
+	struct wlr_pointer_motion_absolute_event *event = data;
+	wlr_cursor_warp_absolute(server->cursor, &event->pointer->base, event->x,
+		event->y);
+	process_cursor_motion(server, event->time_msec);
+}
+
 static void server_new_input(struct wl_listener *listener, void *data) {
 	/* This event is raised by the backend when a new input device becomes
 	 * available. */
@@ -219,7 +273,7 @@ static void server_new_input(struct wl_listener *listener, void *data) {
 int main(int argc, char **argv) {
 	struct mcw_server server;
 
-        server.wl_display = wl_display_create();
+    server.wl_display = wl_display_create();
         assert(server.wl_display);
 	server.wl_event_loop = wl_display_get_event_loop(server.wl_display);
         assert(server.wl_event_loop);
@@ -244,8 +298,17 @@ int main(int argc, char **argv) {
 	server.new_input.notify = server_new_input;
 	wl_signal_add(&server.backend->events.new_input, &server.new_input);
 
+    server.cursor = wlr_cursor_create();
+	wlr_cursor_attach_output_layout(server.cursor, server.output_layout);
+
 	server.cursor_mgr = wlr_xcursor_manager_create(NULL, 24);
 	wlr_xcursor_manager_load(server.cursor_mgr, 1);
+
+    server.cursor_mode = TINYWL_CURSOR_PASSTHROUGH;
+
+	server.cursor_motion_absolute.notify = server_cursor_motion_absolute;
+	wl_signal_add(&server.cursor->events.motion_absolute,
+			&server.cursor_motion_absolute);
 
 	server.seat = wlr_seat_create(server.wl_display, "seat0");
 	server.request_cursor.notify = seat_request_cursor;
