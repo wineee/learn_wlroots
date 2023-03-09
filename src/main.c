@@ -21,6 +21,8 @@
 #include <wlr/types/wlr_seat.h>
 #include <wlr/types/wlr_cursor.h>
 #include <wlr/types/wlr_xcursor_manager.h>
+#include <wlr/types/wlr_drm.h>
+#include <wlr/types/wlr_drm_lease_v1.h>
 
 enum tinywl_cursor_mode {
 	TINYWL_CURSOR_PASSTHROUGH,
@@ -333,6 +335,8 @@ int main(int argc, char **argv) {
         wlr_screencopy_manager_v1_create(server.wl_display);
         wlr_primary_selection_v1_device_manager_create(server.wl_display);
         wlr_idle_create(server.wl_display);
+	wlr_drm_create(server.wl_display, server.renderer);
+	wlr_drm_lease_v1_manager_create(server.wl_display, server.backend);
 	
         server.compositor = wlr_compositor_create(server.wl_display, server.renderer);
 	wlr_subcompositor_create(server.wl_display);
