@@ -20,17 +20,26 @@
               weston
               wayland
               wayland-scanner
+              waffle
             ];
             buildInputs = [
               wlroots_0_16
               pixman
               wayland-protocols
               eudev
+              libevdev
+              libinput
               libxkbcommon
+              libxml2
+              gettext
             ];
             shellHook = ''
               echo "welcome to wlroots"
               # export QT_LOGGING_RULES=*.debug=true
+              export MESA_DEBUG=1
+              export EGL_LOG_LEVEL=debug
+              export LIBGL_DEBUG=verbose
+              export WAYLAND_DEBUG=1
             '';
           };
         });
